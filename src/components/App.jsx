@@ -1,4 +1,4 @@
-import { PureComponent } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 
 import { css, Global } from '@emotion/react';
 import modernNormalize from 'modern-normalize';
@@ -13,70 +13,34 @@ import { Modal } from './Modal';
 
 import { fetchData } from '../api/search';
 
-const INITIAL_VALUES = {
-  searchValue: '',
-  page: 1,
-  images: [],
-  chosenImg: null,
-  isLoading: false,
-  isShowModal: false,
-  isNothing: false,
-  activeImgUrl: null,
-};
+// const INITIAL_VALUES = {
+//   searchValue: '',
+//   page: 1,
+//   images: [],
+//   chosenImg: null,
+//   isLoading: false,
+//   isShowModal: false,
+//   isNothing: false,
+//   activeImgUrl: null,
+// };
 
-export class App extends PureComponent {
-  state = {
-    ...INITIAL_VALUES,
-  };
+export const App = () => {
+  const [searchValue, setSearchValue] = useState('');
+  const [page, setPage] = useState(1);
+  const [images, setImages] = useState([]);
+  const [chosenImg, setChosenImg] = useState(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const [isShowModal, setIsShowModal] = useState(false);
+  const [isNothing, setIsNothing] = useState(false);
 
-  async componentDidUpdate(_, prevState) {
-    const { searchValue, images } = this.state;
+  const prevValueRef = useRef(searchValue);
 
-    if (
-      prevState.searchValue.trim() !== searchValue.trim() &&
-      searchValue !== ''
-    ) {
-      this.setState({ images: [] });
-      this.saveData();
-    }
-
-    if (images.length > 1) {
-      this.setState({ isNothing: false });
-    }
-
-    if (prevState.isLoading !== this.state.isLoading) {
-      window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
-    }
-  }
-
-  handleModalClick = e => {
-    e.stopPropagation();
-  };
-
-  handleOpenModal = currentImg => {
-    this.setState({ isShowModal: true, chosenImg: currentImg });
-  };
-
-  handleCloseModal = e => {
-    this.setState({ isShowModal: false });
-  };
-
-  handleEscape = e => {
-    if (e.key === 'Escape') {
-      this.setState({ isShowModal: false });
-    }
-  };
-
-  saveData = async () => {
-    const { searchValue, page } = this.state;
-
+  const saveData = useCallback(async () => {
     try {
       const response = await fetchData(searchValue, page);
       if (response.hits.length === 0) {
-        this.setState({
-          isLoading: false,
-          isNothing: true,
-        });
+        setIsLoading(false);
+        setIsNothing(true);
       } else {
         const filteredImages = response.hits.map(obj => ({
           id: obj.id,
@@ -84,66 +48,93 @@ export class App extends PureComponent {
           largeImageURL: obj.largeImageURL,
         }));
 
-        this.setState(prevState => ({
-          images: [...prevState.images, ...filteredImages],
-          page: prevState.page + 1,
-          isLoading: false,
-        }));
+        setImages(prevState => [...prevState, ...filteredImages]);
+        setPage(prevState => prevState + 1);
+        setIsLoading(false);
       }
     } catch (error) {
       console.error('Error fetching data:', error);
     }
+  }, [page, searchValue]);
+
+  useEffect(() => {
+    setImages([]);
+    if (searchValue !== '' && prevValueRef !== searchValue) saveData();
+  }, [searchValue]);
+
+  useEffect(() => {
+    if (images.length > 1) {
+      setIsNothing(false);
+    }
+  }, [images]);
+
+  useEffect(() => {
+    window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
+  }, [isLoading]);
+
+  const handleModalClick = e => {
+    e.stopPropagation();
   };
 
-  onSubmit = value => {
-    this.setState({
-      searchValue: value.searchField,
-    });
+  const handleOpenModal = currentImg => {
+    setIsShowModal(true);
+    setChosenImg(currentImg);
+  };
+
+  const handleCloseModal = e => {
+    setIsShowModal(false);
+  };
+
+  const handleEscape = e => {
+    if (e.key === 'Escape') {
+      setIsShowModal(false);
+    }
+  };
+
+  const onSubmit = value => {
+    setSearchValue(value.searchField);
 
     if (
       value.searchField.trim() === '' ||
-      this.state.searchValue.trim() === value.searchField.trim()
+      searchValue.trim() === value.searchField.trim()
     )
       return;
 
-    this.setState({ isLoading: true, page: 1 });
+    setIsLoading(true);
+    setPage(1);
   };
 
-  handleClickLoadMore = async () => {
-    this.setState({ isLoading: true });
-    this.saveData();
+  const handleClickLoadMore = () => {
+    setIsLoading(true);
+    saveData();
   };
 
-  render() {
-    const { images, isLoading, isShowModal, chosenImg, isNothing } = this.state;
-
-    return (
-      <Container>
-        <Global
-          styles={css`
-            ${modernNormalize}
-          `}
-        />
-        <Searchbar onSubmit={this.onSubmit} />
-        <ImageGallery images={images} toggleModal={this.handleOpenModal} />
-        {images.length > 0 && isLoading === false && (
-          <Button onClick={this.handleClickLoadMore} />
-        )}
-        {isLoading && <Loader />}
-        {isNothing && !isLoading && (
-          <NoImagesAlert>Nothing was found</NoImagesAlert>
-        )}
-        {isShowModal && (
-          <Modal
-            isShowModal={isShowModal}
-            closeModal={this.handleCloseModal}
-            escapeModal={this.handleEscape}
-            clickOnModal={this.handleModalClick}
-          >
-            <ModalImg src={chosenImg} alt={'Chosen one'} />
-          </Modal>
-        )}
-      </Container>
-    );
-  }
-}
+  return (
+    <Container>
+      <Global
+        styles={css`
+          ${modernNormalize}
+        `}
+      />
+      <Searchbar onSubmit={onSubmit} />
+      <ImageGallery images={images} toggleModal={handleOpenModal} />
+      {images.length > 0 && isLoading === false && (
+        <Button onClick={handleClickLoadMore} />
+      )}
+      {isLoading && <Loader />}
+      {isNothing && !isLoading && (
+        <NoImagesAlert>Nothing was found</NoImagesAlert>
+      )}
+      {isShowModal && (
+        <Modal
+          isShowModal={isShowModal}
+          closeModal={handleCloseModal}
+          escapeModal={handleEscape}
+          clickOnModal={handleModalClick}
+        >
+          <ModalImg src={chosenImg} alt={'Chosen one'} />
+        </Modal>
+      )}
+    </Container>
+  );
+};

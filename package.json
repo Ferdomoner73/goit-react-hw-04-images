@@ -2,7 +2,7 @@
   "name": "image-finder-new-v",
   "version": "0.2.0",
   "private": true,
-  "homepage": "https://Ferdomoner73.github.io/goit-react-hw-04-image-finder/",
+  "homepage": "https://Ferdomoner73.github.io/goit-react-hw-04-images/",
   "dependencies": {
     "@emotion/react": "^11.11.1",
     "@emotion/styled": "^11.11.0",
