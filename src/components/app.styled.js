@@ -6,6 +6,7 @@ export const Container = styled.div`
 
 export const ModalImg = styled.img`
 border-radius: 1rem;
+background-color: white
 `
 
 export const NoImagesAlert = styled.div`

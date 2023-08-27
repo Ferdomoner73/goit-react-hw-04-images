@@ -6,10 +6,10 @@ import { Overlay, ModalContainer } from './modal.styled';
 
 const modalRoot = document.querySelector('#modal-root');
 
-export const Modal = (escapeModal, closeModal, clickOnModal, children) => {
+export const Modal = ({ escapeModal, closeModal, clickOnModal, children }) => {
   useEffect(() => {
     window.addEventListener('keydown', escapeModal);
-    return window.removeEventListener('keydown', escapeModal);
+    return () => window.removeEventListener('keydown', escapeModal);
   }, [escapeModal]);
 
   return createPortal(

@@ -15,7 +15,11 @@ export const ImageGalleryItem = ({
   return (
     <GalleryItemContainer>
       <Button type="button" onClick={() => toggleModal(largeFormat)}>
-        <GalleryItemImg src={galleryFormat} alt="" loading="lazy" />
+        <GalleryItemImg
+          src={galleryFormat}
+          alt="Gallary image"
+          loading="lazy"
+        />
       </Button>
     </GalleryItemContainer>
   );

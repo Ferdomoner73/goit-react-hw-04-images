@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect } from 'react';
 
 import { css, Global } from '@emotion/react';
 import modernNormalize from 'modern-normalize';
@@ -13,17 +13,6 @@ import { Modal } from './Modal';
 
 import { fetchData } from '../api/search';
 
-// const INITIAL_VALUES = {
-//   searchValue: '',
-//   page: 1,
-//   images: [],
-//   chosenImg: null,
-//   isLoading: false,
-//   isShowModal: false,
-//   isNothing: false,
-//   activeImgUrl: null,
-// };
-
 export const App = () => {
   const [searchValue, setSearchValue] = useState('');
   const [page, setPage] = useState(1);
@@ -32,43 +21,57 @@ export const App = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [isShowModal, setIsShowModal] = useState(false);
   const [isNothing, setIsNothing] = useState(false);
-
-  const prevValueRef = useRef(searchValue);
-
-  const saveData = useCallback(async () => {
-    try {
-      const response = await fetchData(searchValue, page);
-      if (response.hits.length === 0) {
-        setIsLoading(false);
-        setIsNothing(true);
-      } else {
-        const filteredImages = response.hits.map(obj => ({
-          id: obj.id,
-          webformatURL: obj.webformatURL,
-          largeImageURL: obj.largeImageURL,
-        }));
-
-        setImages(prevState => [...prevState, ...filteredImages]);
-        setPage(prevState => prevState + 1);
-        setIsLoading(false);
-      }
-    } catch (error) {
-      console.error('Error fetching data:', error);
-    }
-  }, [page, searchValue]);
+  const [tipeOfLoading, setTipeOfLOading] = useState(null);
 
   useEffect(() => {
-    setImages([]);
-    if (searchValue !== '' && prevValueRef !== searchValue) saveData();
-  }, [searchValue]);
+    if (images.length <= 0) return;
 
-  useEffect(() => {
     if (images.length > 1) {
       setIsNothing(false);
     }
   }, [images]);
 
   useEffect(() => {
+    const saveData = async () => {
+      try {
+        const response = await fetchData(searchValue, page);
+        if (response.hits.length === 0) {
+          setIsLoading(false);
+          setIsNothing(true);
+        } else {
+          const filteredImages = response.hits.map(obj => ({
+            id: obj.id,
+            webformatURL: obj.webformatURL,
+            largeImageURL: obj.largeImageURL,
+          }));
+
+          setImages(prevState => [...prevState, ...filteredImages]);
+          setPage(prevState => prevState + 1);
+          setIsLoading(false);
+        }
+      } catch (error) {
+        console.error('Error fetching data:', error);
+      }
+    };
+
+    if (searchValue !== '' && tipeOfLoading !== null)
+      switch (tipeOfLoading) {
+        case 'submit':
+          saveData();
+          setTipeOfLOading(null);
+          break;
+        case 'load-more':
+          saveData();
+          setTipeOfLOading(null);
+          break;
+        default:
+          return;
+      }
+  }, [searchValue, page, tipeOfLoading]);
+
+  useEffect(() => {
+    if (isLoading) return;
+
     window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
   }, [isLoading]);
 
@@ -81,7 +84,7 @@ export const App = () => {
     setChosenImg(currentImg);
   };
 
-  const handleCloseModal = e => {
+  const handleCloseModal = () => {
     setIsShowModal(false);
   };
 
@@ -97,16 +100,19 @@ export const App = () => {
     if (
       value.searchField.trim() === '' ||
       searchValue.trim() === value.searchField.trim()
-    )
+    ) {
       return;
+    }
 
-    setIsLoading(true);
     setPage(1);
+    setImages([]);
+    setIsLoading(true);
+    setTipeOfLOading('submit');
   };
 
   const handleClickLoadMore = () => {
     setIsLoading(true);
-    saveData();
+    setTipeOfLOading('load-more');
   };
 
   return (
